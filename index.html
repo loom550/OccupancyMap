@@ -678,53 +678,260 @@ function exportImage() {
   const EXPORT_W = 1400;
   const EXPORT_H = 900;
 
-  // 1. Lock body to fixed export dimensions
+  // 1. Lock body dimensions
   const body = document.body;
-  const origWidth    = body.style.width;
-  const origHeight   = body.style.height;
-  const origOverflow = body.style.overflow;
-  const origMinH     = body.style.minHeight;
-  body.style.width    = EXPORT_W + 'px';
-  body.style.height   = EXPORT_H + 'px';
-  body.style.overflow = 'hidden';
+  const origBodyWidth    = body.style.width;
+  const origBodyHeight   = body.style.height;
+  const origBodyOverflow = body.style.overflow;
+  const origBodyMinH     = body.style.minHeight;
+  body.style.width     = EXPORT_W + 'px';
+  body.style.height    = EXPORT_H + 'px';
+  body.style.overflow  = 'hidden';
   body.style.minHeight = 'unset';
 
-  // 2. Fix -webkit-background-clip: text so html2canvas doesn't bleed a white gradient
+  // 2. Fix gradient text clipping on title
   const titleEl = document.querySelector('.header-title');
-  const origColor       = titleEl.style.color;
-  const origBgClip      = titleEl.style.webkitBackgroundClip;
-  const origTextFill    = titleEl.style.webkitTextFillColor;
-  const origBg          = titleEl.style.background;
-  titleEl.style.background            = 'none';
-  titleEl.style.webkitBackgroundClip  = 'unset';
-  titleEl.style.webkitTextFillColor   = '#ffffff';
-  titleEl.style.color                 = '#ffffff';
+  const origTitleColor    = titleEl.style.color;
+  const origTitleBgClip   = titleEl.style.webkitBackgroundClip;
+  const origTitleTextFill = titleEl.style.webkitTextFillColor;
+  const origTitleBg       = titleEl.style.background;
+  titleEl.style.background           = 'none';
+  titleEl.style.webkitBackgroundClip = 'unset';
+  titleEl.style.webkitTextFillColor  = '#ffffff';
+  titleEl.style.color                = '#ffffff';
 
-  html2canvas(body, {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: '#0A1929',
-    logging: false,
-    width: EXPORT_W,
-    height: EXPORT_H,
-    windowWidth: EXPORT_W,
-    windowHeight: EXPORT_H
-  }).then(canvas => {
-    // Restore everything
-    body.style.width     = origWidth;
-    body.style.height    = origHeight;
-    body.style.overflow  = origOverflow;
-    body.style.minHeight = origMinH;
-    titleEl.style.background           = origBg;
-    titleEl.style.webkitBackgroundClip = origBgClip;
-    titleEl.style.webkitTextFillColor  = origTextFill;
-    titleEl.style.color                = origColor;
+  // 3. Hide buttons
+  const adminBtn  = document.querySelector('.admin-header-btn');
+  const exportBtn = document.querySelector('.export-header-btn');
+  adminBtn.style.display  = 'none';
+  exportBtn.style.display = 'none';
 
-    const a = document.createElement('a');
-    a.download = 'Kashechewan-Evacuation-' + new Date().toISOString().slice(0,10) + '.jpg';
-    a.href = canvas.toDataURL('image/jpeg', 0.95);
-    a.click();
+  // Restore body + title immediately — we won't touch the live layout at all
+  body.style.width     = origBodyWidth;
+  body.style.height    = origBodyHeight;
+  body.style.overflow  = origBodyOverflow;
+  body.style.minHeight = origBodyMinH;
+  titleEl.style.background           = origTitleBg;
+  titleEl.style.webkitBackgroundClip = origTitleBgClip;
+  titleEl.style.webkitTextFillColor  = origTitleTextFill;
+  titleEl.style.color                = origTitleColor;
+  adminBtn.style.display  = '';
+  exportBtn.style.display = '';
+
+  // Build a completely separate flat export frame — no flex, no overflow:hidden
+  // html2canvas captures this, then it's removed. Live layout is never mutated.
+  const SIDEBAR_W = 320;
+  const MAP_W = EXPORT_W - SIDEBAR_W;
+  const HEADER_H = 62;
+  const MAP_H = EXPORT_H - HEADER_H;
+
+  const hostSites = sites.filter(s => s.type === 'host' || s.type === 'host-kingston');
+  const sorted = [...hostSites].sort((a, b) => fillPct(b) - fillPct(a));
+  const total = hostSites.reduce((sum, s) => sum + s.count, 0);
+
+  // Build sidebar cards HTML
+  let cardsHTML = '';
+  sorted.forEach(site => {
+    const pct = fillPct(site);
+    const fillColor = getFillColor(pct);
+    cardsHTML += `
+      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;overflow:hidden;margin-bottom:7px;">
+        <div style="background:linear-gradient(90deg,rgba(26,78,126,0.25),rgba(47,152,121,0.15));border-bottom:1px solid rgba(255,255,255,0.07);padding:7px 10px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#2F9879;flex-shrink:0;"></div>
+            <span style="font-family:Epilogue,sans-serif;font-size:13px;font-weight:700;color:#fff;">${site.name}</span>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 7px;border-radius:3px;font-weight:600;letter-spacing:.05em;background:rgba(47,152,121,0.2);border:1px solid rgba(47,152,121,0.35);color:#2F9879;">HOST SITE</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:rgba(255,255,255,0.04);">
+          <div style="background:rgba(255,255,255,0.02);padding:8px 10px;">
+            <div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Evacuees</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;color:#2F9879;">${site.count.toLocaleString()}</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.02);padding:8px 10px;">
+            <div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Capacity</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;color:#fff;">${site.capacity.toLocaleString()}</div>
+            <div style="font-size:9px;color:rgba(255,255,255,0.35);">max</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.02);padding:8px 10px;">
+            <div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Utilization</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;color:#fff;">${pct}%</div>
+          </div>
+        </div>
+        <div style="padding:7px 10px 9px;">
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:rgba(255,255,255,0.45);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">
+            <span>Occupancy</span><span style="color:#2F9879;font-weight:700;">${pct}%</span>
+          </div>
+          <div style="height:5px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:${fillColor};border-radius:3px;"></div>
+          </div>
+        </div>
+      </div>`;
   });
+
+  // Timestamp string
+  let tsStr = 'Not yet updated';
+  if (lastUpdated) {
+    const d = new Date(lastUpdated);
+    tsStr = d.toLocaleDateString('en-CA', {year:'numeric',month:'short',day:'numeric'}) + ' ' +
+            d.toLocaleTimeString('en-CA', {hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
+  }
+
+  // Get the map image src from the live page
+  const mapSrc = document.querySelector('.map-img').src;
+
+  const frame = document.createElement('div');
+  frame.id = 'export-frame';
+  frame.style.cssText = `
+    position: fixed;
+    top: -9999px;
+    left: 0;
+    width: ${EXPORT_W}px;
+    height: ${EXPORT_H}px;
+    background: linear-gradient(135deg, #0A1929 0%, #1A2B35 100%);
+    font-family: 'DM Sans', sans-serif;
+    color: white;
+    overflow: hidden;
+    z-index: -1;
+  `;
+
+  frame.innerHTML = `
+    <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(47,152,121,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(47,152,121,0.03) 1px,transparent 1px);background-size:40px 40px;"></div>
+
+    <!-- HEADER -->
+    <div style="position:absolute;top:0;left:0;right:0;height:${HEADER_H}px;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;border-bottom:2px solid rgba(47,152,121,0.2);z-index:2;">
+      <div>
+        <div style="font-family:Epilogue,sans-serif;font-size:1.4rem;font-weight:900;letter-spacing:-.02em;text-transform:uppercase;color:#fff;">Loomex Emergency Operations</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:.65rem;color:rgba(255,255,255,0.4);letter-spacing:.15em;text-transform:uppercase;">Evacuation Status – Kashechewan First Nation</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.75rem;">
+        <div style="display:flex;align-items:center;gap:.6rem;padding:.6rem 1.2rem;background:rgba(47,152,121,0.1);border:1px solid rgba(47,152,121,0.3);border-left:4px solid #2F9879;">
+          <div style="width:8px;height:8px;background:#2F9879;border-radius:50%;box-shadow:0 0 8px #2F9879;"></div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:.75rem;font-weight:600;color:#2F9879;letter-spacing:.05em;">ACTIVE EVACUATION</span>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:.7rem;color:rgba(255,255,255,0.4);padding:.6rem 1rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;">As of ${tsStr}</div>
+      </div>
+    </div>
+
+    <!-- MAP AREA -->
+    <div style="position:absolute;top:${HEADER_H}px;left:0;width:${MAP_W}px;height:${MAP_H}px;overflow:hidden;">
+      <img src="${mapSrc}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:92%;height:92%;object-fit:contain;filter:brightness(0.45) sepia(1) hue-rotate(175deg) saturate(0.8) brightness(1.6);opacity:0.9;">
+      <div id="ef-pins" style="position:absolute;inset:0;"></div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div style="position:absolute;top:${HEADER_H}px;right:0;width:${SIDEBAR_W}px;height:${MAP_H}px;background:rgba(10,25,41,0.7);border-left:1px solid rgba(47,152,121,0.15);padding:0;">
+
+      <!-- Section header -->
+      <div style="display:flex;align-items:center;gap:.75rem;padding:1rem 1.25rem .5rem;">
+        <span style="font-family:Epilogue,sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.6);">System-Wide Total</span>
+        <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.15),transparent);"></div>
+      </div>
+
+      <!-- Total block -->
+      <div style="margin:.5rem 1.25rem .75rem;background:linear-gradient(135deg,rgba(26,78,126,0.3),rgba(47,152,121,0.2));border:1px solid rgba(47,152,121,0.25);border-left:4px solid #2F9879;padding:1rem 1.25rem;">
+        <div style="font-size:.65rem;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Total Evacuees</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:2.4rem;font-weight:700;color:#fff;line-height:1;">${total.toLocaleString()}</div>
+        <div style="font-size:.72rem;color:rgba(255,255,255,0.4);margin-top:3px;">across all active host sites</div>
+      </div>
+
+      <!-- Sites header -->
+      <div style="display:flex;align-items:center;gap:.75rem;padding:.25rem 1.25rem .5rem;">
+        <span style="font-family:Epilogue,sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.6);">Host Sites — by Occupancy</span>
+        <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.15),transparent);"></div>
+      </div>
+
+      <!-- Cards — no overflow, just stack -->
+      <div style="padding:0 1.25rem 1rem;">${cardsHTML}</div>
+
+      <!-- Legend -->
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:.75rem 1.25rem;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:1.25rem;background:rgba(10,25,41,0.7);">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:9px;height:9px;border-radius:50%;background:#2F9879;border:2px solid rgba(255,255,255,0.5);"></div>
+          <span style="font-size:.65rem;color:rgba(255,255,255,0.45);">Host Site</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:9px;height:9px;border-radius:50%;background:#2D6A9F;border:2px solid rgba(255,255,255,0.5);"></div>
+          <span style="font-size:.65rem;color:rgba(255,255,255,0.45);">Home Community</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(frame);
+
+  // Re-render pins into the export frame's map div
+  const efPins = frame.querySelector('#ef-pins');
+  const efMapW = MAP_W;
+  const efMapH = MAP_H;
+
+  function efPin(site, extraHTML) {
+    const el = document.createElement('div');
+    el.style.cssText = `position:absolute;left:${site.x}%;top:${site.y}%;transform:translate(-50%,-50%);z-index:5;`;
+    el.innerHTML = extraHTML;
+    efPins.appendChild(el);
+  }
+
+  // Kashechewan
+  const kash = sites.find(s => s.id === 'kashechewan');
+  efPin(kash, `
+    <div style="width:18px;height:18px;border-radius:50%;background:#2D6A9F;border:2.5px solid rgba(255,255,255,0.85);box-shadow:0 0 0 3px rgba(0,0,0,0.25);position:relative;z-index:2;"></div>
+    <div style="position:absolute;left:26px;top:50%;transform:translateY(-50%);background:rgba(10,25,41,0.93);border:1px solid rgba(255,255,255,0.1);border-left:3px solid #2D6A9F;padding:8px 12px;white-space:nowrap;">
+      <div style="font-family:Epilogue,sans-serif;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#fff;margin-bottom:3px;">Kashechewan</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.5);">Origin Community</div>
+    </div>`);
+
+  // Regular host sites
+  sites.filter(s => s.type === 'host').forEach(site => {
+    const pct = fillPct(site);
+    efPin(site, `
+      <div style="width:18px;height:18px;border-radius:50%;background:#2F9879;border:2.5px solid rgba(255,255,255,0.85);box-shadow:0 0 0 3px rgba(0,0,0,0.25);position:relative;z-index:2;"></div>
+      <div style="position:absolute;left:26px;top:50%;transform:translateY(-50%);background:rgba(10,25,41,0.93);border:1px solid rgba(255,255,255,0.1);border-left:3px solid #2F9879;padding:8px 12px;white-space:nowrap;">
+        <div style="font-family:Epilogue,sans-serif;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#fff;margin-bottom:3px;">${site.name}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;color:#2F9879;">${site.count.toLocaleString()}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);">/ ${site.capacity.toLocaleString()} cap · ${pct}%</div>
+      </div>`);
+  });
+
+  // Kingston combined pin
+  const k0 = sites.find(s => s.id === 'kingston');
+  const k1 = sites.find(s => s.id === 'kingston-west');
+  efPin(k0, `
+    <div style="width:18px;height:18px;border-radius:50%;background:#2F9879;border:2.5px solid rgba(255,255,255,0.85);box-shadow:0 0 0 3px rgba(0,0,0,0.25);position:relative;z-index:2;"></div>
+    <div style="position:absolute;left:26px;top:50%;transform:translateY(-50%);background:rgba(10,25,41,0.93);border:1px solid rgba(255,255,255,0.1);border-left:3px solid #2F9879;padding:8px 12px;white-space:nowrap;min-width:185px;">
+      <div style="font-family:Epilogue,sans-serif;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#fff;margin-bottom:5px;">Kingston Area</div>
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;">
+          <div style="font-size:9px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Kingston</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#2F9879;">${k0.count.toLocaleString()}</div>
+          <div style="font-size:9px;color:rgba(255,255,255,0.35);">/ ${k0.capacity.toLocaleString()} · ${fillPct(k0)}%</div>
+        </div>
+        <div style="flex:1;padding-left:10px;border-left:1px solid rgba(255,255,255,0.1);">
+          <div style="font-size:9px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Kingston West</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#2F9879;">${k1.count.toLocaleString()}</div>
+          <div style="font-size:9px;color:rgba(255,255,255,0.35);">/ ${k1.capacity.toLocaleString()} · ${fillPct(k1)}%</div>
+        </div>
+      </div>
+    </div>`);
+
+  setTimeout(() => {
+    html2canvas(frame, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#0A1929',
+      logging: false,
+      width: EXPORT_W,
+      height: EXPORT_H,
+      windowWidth: EXPORT_W,
+      windowHeight: EXPORT_H
+    }).then(canvas => {
+      document.body.removeChild(frame);
+      const a = document.createElement('a');
+      const _d = new Date(); const _date = _d.toISOString().slice(0,10); const _hrs = String(_d.getHours()).padStart(2,'0') + String(_d.getMinutes()).padStart(2,'0'); a.download = `Kashechewan-Evacuation-Status-${_date}-${_hrs}hrs.jpg`;
+      a.href = canvas.toDataURL('image/jpeg', 0.95);
+      a.click();
+    });
+  }, 200);
 }
 
 renderAll();
