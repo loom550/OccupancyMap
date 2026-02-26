@@ -504,6 +504,60 @@ const sites = [
 
 let lastUpdated = null;
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// JSONBIN CONFIG — shared live data storage
+const BIN_ID  = '69a09bfdd0ea881f40dca468';
+const API_KEY = '$2a$10$yix8gE4u8dK1HPdVeiQZauXduGGWkuQ3pkgbMl4nBVXEzbMsi2ogK';
+const BIN_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+
+async function loadFromBin() {
+  try {
+    const res = await fetch(BIN_URL + '/latest', {
+      headers: { 'X-Master-Key': API_KEY }
+    });
+    if (!res.ok) throw new Error('Load failed');
+    const json = await res.json();
+    const data = json.record;
+    // Merge saved counts/capacity into sites array
+    data.sites.forEach(saved => {
+      const site = sites.find(s => s.id === saved.id);
+      if (site) {
+        site.count    = saved.count    || 0;
+        site.capacity = saved.capacity || 0;
+      }
+    });
+    lastUpdated = data.lastUpdated || null;
+    renderAll();
+  } catch(e) {
+    console.warn('JSONBin load error:', e);
+    renderAll(); // render with defaults if load fails
+  }
+}
+
+async function saveToBin() {
+  const payload = {
+    lastUpdated: lastUpdated,
+    sites: sites.map(s => ({ id: s.id, count: s.count, capacity: s.capacity }))
+  };
+  try {
+    const res = await fetch(BIN_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': API_KEY
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('Save failed');
+    console.log('Saved to JSONBin');
+  } catch(e) {
+    console.warn('JSONBin save error:', e);
+    alert('Warning: numbers updated locally but could not sync to shared storage. Check your connection.');
+  }
+}
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
 function getFillColor(pct) {
   if (pct > 85) return '#C0392B';
   if (pct > 60) return '#D9860F';
@@ -673,6 +727,7 @@ function saveAdmin() {
   lastUpdated = new Date().toISOString();
   closeAdmin();
   renderAll();
+  saveToBin();
 }
 
 document.getElementById('admin-modal').addEventListener('click', e => {
@@ -951,7 +1006,9 @@ function exportImage() {
   }, 200);
 }
 
-renderAll();
+// Load live data on startup, then refresh every 30 seconds
+loadFromBin();
+setInterval(loadFromBin, 30000);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
