@@ -422,10 +422,17 @@
       <div class="section-title">System-Wide Total</div>
       <div class="section-line"></div>
     </div>
-    <div class="total-block">
-      <div class="total-label">Total Evacuees</div>
-      <div class="total-num" id="total-num">0</div>
-      <div class="total-sub">across all active host sites</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin:0.5rem 1.25rem 0.75rem;">
+      <div class="total-block" style="margin:0;">
+        <div class="total-label">Evacuees</div>
+        <div class="total-num" id="total-num">0</div>
+        <div class="total-sub">across all sites</div>
+      </div>
+      <div class="total-block" style="margin:0;border-left-color:var(--navy-600);">
+        <div class="total-label">Capacity</div>
+        <div class="total-num" id="total-cap">0</div>
+        <div class="total-sub">remaining spots</div>
+      </div>
     </div>
     <div class="section-header">
       <div class="section-title">Host Sites — by Occupancy</div>
@@ -472,25 +479,25 @@ const sites = [
   },
   {
     id: 'kapuskasing', name: 'Kapuskasing', type: 'host',
-    count: 0, capacity: 500,
+    count: 0, capacity: 0,
     // North-central Ontario
     x: 42.0, y: 41.0
   },
   {
     id: 'timmins', name: 'Timmins', type: 'host',
-    count: 0, capacity: 500,
+    count: 0, capacity: 0,
     // Slightly east of Kapuskasing
     x: 47.0, y: 46.0
   },
   {
     id: 'kingston', name: 'Kingston', type: 'host-kingston',
-    count: 0, capacity: 400,
+    count: 0, capacity: 0,
     // Eastern Ontario, north shore of Lake Ontario
     x: 60.0, y: 62, paired: true
   },
   {
     id: 'kingston-west', name: 'Kingston West', type: 'host-kingston',
-    count: 0, capacity: 300,
+    count: 0, capacity: 0,
     x: 60.0, y: 62, paired: true, skipPin: true
   }
 ];
@@ -504,8 +511,9 @@ function getFillColor(pct) {
 }
 
 function fillPct(site) {
-  if (!site.capacity) return 0;
-  return Math.min(100, Math.round(site.count / site.capacity * 100));
+  const total = site.count + site.capacity; // evacuees + available = total capacity
+  if (!total) return 0;
+  return Math.min(100, Math.round(site.count / total * 100));
 }
 
 function renderPins() {
@@ -526,7 +534,7 @@ function renderPins() {
     let countHTML = site.type === 'home'
       ? `<div class="pin-count" style="font-size:11px;color:rgba(255,255,255,0.5)">Origin Community</div>`
       : `<div class="pin-count green">${site.count.toLocaleString()}</div>
-         <div class="pin-cap">/ ${site.capacity.toLocaleString()} cap · ${pct}%</div>`;
+         <div class="pin-cap">${site.capacity.toLocaleString()} avail · ${pct}%</div>`;
     pin.innerHTML = `
       <div class="pin-dot"></div>
       <div class="pin-card">
@@ -566,7 +574,9 @@ function renderSidebar() {
   const hostSites = sites.filter(s => s.type === 'host' || s.type === 'host-kingston');
   const sorted = [...hostSites].sort((a, b) => fillPct(b) - fillPct(a));
   const total = hostSites.reduce((sum, s) => sum + s.count, 0);
+  const totalCap = hostSites.reduce((sum, s) => sum + s.capacity, 0);
   document.getElementById('total-num').textContent = total.toLocaleString();
+  document.getElementById('total-cap').textContent = totalCap.toLocaleString();
 
   const list = document.getElementById('site-list');
   list.innerHTML = '';
@@ -590,9 +600,9 @@ function renderSidebar() {
           <div class="site-metric-val" style="color:var(--host-green)">${site.count.toLocaleString()}</div>
         </div>
         <div class="site-metric">
-          <div class="site-metric-label">Capacity</div>
+          <div class="site-metric-label">Available</div>
           <div class="site-metric-val">${site.capacity.toLocaleString()}</div>
-          <div class="site-metric-sub">max</div>
+          <div class="site-metric-sub">remaining</div>
         </div>
         <div class="site-metric">
           <div class="site-metric-label">Utilization</div>
@@ -638,11 +648,11 @@ function openAdmin() {
       </div>
       <div class="form-fields">
         <div class="form-field">
-          <label>Current Count</label>
+          <label>Total Evacuees</label>
           <input class="form-input" type="number" min="0" id="fc-${site.id}" value="${site.count}" placeholder="0">
         </div>
         <div class="form-field">
-          <label>Max Capacity</label>
+          <label>Available Capacity</label>
           <input class="form-input" type="number" min="0" id="fk-${site.id}" value="${site.capacity}" placeholder="0">
         </div>
       </div>`;
@@ -749,9 +759,9 @@ function exportImage() {
             <div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;color:#2F9879;">${site.count.toLocaleString()}</div>
           </div>
           <div style="background:rgba(255,255,255,0.02);padding:8px 10px;">
-            <div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Capacity</div>
+            <div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Available</div>
             <div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;color:#fff;">${site.capacity.toLocaleString()}</div>
-            <div style="font-size:9px;color:rgba(255,255,255,0.35);">max</div>
+            <div style="font-size:9px;color:rgba(255,255,255,0.35);">remaining</div>
           </div>
           <div style="background:rgba(255,255,255,0.02);padding:8px 10px;">
             <div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Utilization</div>
@@ -828,11 +838,18 @@ function exportImage() {
         <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.15),transparent);"></div>
       </div>
 
-      <!-- Total block -->
-      <div style="margin:.5rem 1.25rem .75rem;background:linear-gradient(135deg,rgba(26,78,126,0.3),rgba(47,152,121,0.2));border:1px solid rgba(47,152,121,0.25);border-left:4px solid #2F9879;padding:1rem 1.25rem;">
-        <div style="font-size:.65rem;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Total Evacuees</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:2.4rem;font-weight:700;color:#fff;line-height:1;">${total.toLocaleString()}</div>
-        <div style="font-size:.72rem;color:rgba(255,255,255,0.4);margin-top:3px;">across all active host sites</div>
+      <!-- Total blocks -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin:.5rem 1.25rem .75rem;">
+        <div style="background:linear-gradient(135deg,rgba(26,78,126,0.3),rgba(47,152,121,0.2));border:1px solid rgba(47,152,121,0.25);border-left:4px solid #2F9879;padding:.75rem 1rem;">
+          <div style="font-size:.6rem;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Evacuees</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:700;color:#fff;line-height:1;">${total.toLocaleString()}</div>
+          <div style="font-size:.65rem;color:rgba(255,255,255,0.4);margin-top:3px;">across all sites</div>
+        </div>
+        <div style="background:linear-gradient(135deg,rgba(26,78,126,0.3),rgba(26,78,126,0.2));border:1px solid rgba(45,106,159,0.25);border-left:4px solid #2D6A9F;padding:.75rem 1rem;">
+          <div style="font-size:.6rem;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Capacity</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:700;color:#fff;line-height:1;">${hostSites.reduce((s,x)=>s+x.capacity,0).toLocaleString()}</div>
+          <div style="font-size:.65rem;color:rgba(255,255,255,0.4);margin-top:3px;">remaining spots</div>
+        </div>
       </div>
 
       <!-- Sites header -->
