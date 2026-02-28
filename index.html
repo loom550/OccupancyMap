@@ -15,11 +15,11 @@
     --navy-600: #2D6A9F;
     --teal-500: #2F9879;
     --teal-400: #42A278;
-    --lime-500: #7DBE42;
     --amber-500: #D9860F;
     --red-500: #C0392B;
     --host-green: #2F9879;
     --home-blue: #2D6A9F;
+    --partner: #D9860F;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -28,11 +28,11 @@
     font-family: 'DM Sans', -apple-system, system-ui, sans-serif;
     background: linear-gradient(135deg, var(--navy-900) 0%, var(--navy-800) 100%);
     color: white;
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
     position: relative;
     display: flex;
     flex-direction: column;
+    overflow-x: auto;
   }
 
   body::before {
@@ -57,6 +57,10 @@
     position: relative;
     z-index: 10;
     flex-shrink: 0;
+    background: rgba(10,25,41,0.95);
+    backdrop-filter: blur(8px);
+    position: sticky;
+    top: 0;
   }
   .header::after {
     content: '';
@@ -70,15 +74,14 @@
     font-family: 'Epilogue', sans-serif;
     font-size: 1.4rem; font-weight: 900;
     letter-spacing: -0.02em; text-transform: uppercase;
-    background: linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,0.7) 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    color: #fff;
   }
   .header-sub {
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.65rem; color: rgba(255,255,255,0.4);
     letter-spacing: 0.15em; text-transform: uppercase;
   }
-  .header-right { display: flex; align-items: center; gap: 0.75rem; }
+  .header-right { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
   .event-badge {
     display: flex; align-items: center; gap: 0.6rem;
     padding: 0.6rem 1.2rem;
@@ -92,10 +95,7 @@
     box-shadow: 0 0 8px var(--teal-500), 0 0 16px var(--teal-500);
     animation: pulse 2s ease-in-out infinite;
   }
-  @keyframes pulse {
-    0%,100% { opacity:1; transform:scale(1); }
-    50% { opacity:0.6; transform:scale(1.2); }
-  }
+  @keyframes pulse { 0%,100% { opacity:1;transform:scale(1); } 50% { opacity:0.6;transform:scale(1.2); } }
   .badge-text {
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.75rem; font-weight: 600;
@@ -134,20 +134,25 @@
   /* ── MAIN LAYOUT ── */
   .main {
     display: grid;
-    grid-template-columns: 1fr 320px;
-    flex: 1; overflow: hidden;
-    position: relative; z-index: 1;
+    grid-template-columns: 900px 320px;
+    flex: 1;
+    min-height: calc(100vh - 70px);
+    position: relative;
+    z-index: 1;
   }
 
   /* ── MAP ── */
-  .map-container { position: relative; overflow: hidden; }
+  .map-container {
+    position: relative;
+    width: 900px;
+    height: 740px;
+  }
   .map-img {
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     width: 92%; height: 92%;
     object-fit: contain;
-    /* Province tinted to a muted navy-teal, transparent BG blends naturally */
     filter: brightness(0.45) sepia(1) hue-rotate(175deg) saturate(0.8) brightness(1.6);
     opacity: 0.9;
   }
@@ -157,7 +162,8 @@
   .site-pin {
     position: absolute;
     transform: translate(-50%, -50%);
-    z-index: 5; cursor: default;
+    z-index: 5;
+    cursor: pointer;
   }
   .pin-dot {
     width: 18px; height: 18px; border-radius: 50%;
@@ -165,6 +171,7 @@
     box-shadow: 0 0 0 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.5);
     position: relative; z-index: 2; transition: transform 0.2s;
   }
+  .site-pin:hover .pin-dot { transform: scale(1.3); }
   .pin-dot::after {
     content: ''; position: absolute; inset: -6px; border-radius: 50%;
     animation: pinPulse 2.5s infinite;
@@ -175,22 +182,44 @@
   }
   .type-home .pin-dot { background: var(--home-blue); }
   .type-host .pin-dot { background: var(--host-green); }
+  .type-partner .pin-dot { background: var(--partner); }
   .type-kingston .pin-dot { background: var(--host-green); }
 
+  /* Pin card — default opens RIGHT */
   .pin-card {
     position: absolute;
     left: 26px; top: 50%; transform: translateY(-50%);
-    background: rgba(10,25,41,0.93);
+    background: rgba(10,25,41,0.95);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255,255,255,0.1);
     border-left: 3px solid;
     padding: 8px 12px;
     white-space: nowrap;
-    pointer-events: none; min-width: 150px;
+    pointer-events: none;
+    min-width: 160px;
     clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+    transition: opacity 0.2s;
   }
+  /* Card opens ABOVE the pin */
+  .pin-card.above {
+    left: 50%; top: auto;
+    bottom: 28px;
+    transform: translateX(-50%);
+  }
+  /* Card opens BELOW the pin */
+  .pin-card.below {
+    left: 50%; top: 28px;
+    transform: translateX(0);
+  }
+  /* Card opens LEFT of the pin */
+  .pin-card.left {
+    left: auto; right: 26px; top: 50%;
+    transform: translateY(-50%);
+  }
+
   .type-host .pin-card { border-left-color: var(--host-green); }
   .type-home .pin-card { border-left-color: var(--home-blue); }
+  .type-partner .pin-card { border-left-color: var(--partner); }
   .type-kingston .pin-card { border-left-color: var(--host-green); }
 
   .pin-city {
@@ -201,28 +230,47 @@
   }
   .pin-count { font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 700; line-height: 1; }
   .pin-count.green { color: var(--host-green); }
-  .pin-count.blue { color: var(--home-blue); }
   .pin-cap { font-size: 10px; color: rgba(255,255,255,0.4); letter-spacing: 0.04em; margin-top: 1px; }
+  .pin-phone {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--teal-500);
+    margin-top: 4px; letter-spacing: 0.03em;
+    text-decoration: none; display: block;
+    pointer-events: all;
+  }
+  .pin-phone:hover { color: #fff; }
+  .pin-badge {
+    font-size: 8px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 1px 5px; border-radius: 2px;
+    margin-bottom: 3px; display: inline-block;
+  }
+  .pin-badge.partner { background: rgba(217,134,15,0.2); color: var(--partner); border: 1px solid rgba(217,134,15,0.4); }
 
-  /* Kingston dual */
+  /* Kingston dual card */
   .pin-dual-row { display: flex; gap: 10px; align-items: flex-start; }
   .pin-dual-site { flex: 1; }
   .pin-dual-site + .pin-dual-site { padding-left: 10px; border-left: 1px solid rgba(255,255,255,0.1); }
-  .pin-dual-label {
-    font-size: 9px; font-family: 'JetBrains Mono', monospace;
-    color: rgba(255,255,255,0.4); text-transform: uppercase;
-    letter-spacing: 0.06em; margin-bottom: 2px;
-  }
+  .pin-dual-label { font-size: 9px; font-family: 'JetBrains Mono', monospace; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
   .pin-dual-num { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; color: var(--host-green); }
   .pin-dual-cap { font-size: 9px; color: rgba(255,255,255,0.35); }
+  .pin-dual-phone { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--teal-500); margin-top: 3px; text-decoration: none; display: block; pointer-events: all; }
+  .pin-dual-phone:hover { color: #fff; }
 
   /* ── SIDEBAR ── */
   .sidebar {
     background: rgba(10,25,41,0.7);
     backdrop-filter: blur(12px);
     border-left: 1px solid rgba(47,152,121,0.15);
-    display: flex; flex-direction: column; overflow: hidden;
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+    max-height: calc(100vh - 70px);
+    position: sticky;
+    top: 70px;
+    align-self: start;
   }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: rgba(47,152,121,0.3); border-radius: 2px; }
+
   .section-header {
     display: flex; align-items: center; gap: 0.75rem;
     padding: 1rem 1.25rem 0.5rem; flex-shrink: 0;
@@ -238,29 +286,34 @@
     background: linear-gradient(90deg, rgba(255,255,255,0.15) 0%, transparent 100%);
   }
 
-  /* Total */
-  .total-block {
+  /* Totals */
+  .totals-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
     margin: 0.5rem 1.25rem 0.75rem;
+  }
+  .total-block {
     background: linear-gradient(135deg, rgba(26,78,126,0.3) 0%, rgba(47,152,121,0.2) 100%);
     border: 1px solid rgba(47,152,121,0.25);
     border-left: 4px solid var(--teal-500);
-    padding: 1rem 1.25rem;
+    padding: 0.85rem 1rem;
     clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
-    flex-shrink: 0;
   }
-  .total-label { font-size: 0.65rem; font-weight: 600; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
-  .total-num { font-family: 'JetBrains Mono', monospace; font-size: 2.4rem; font-weight: 700; color: #fff; line-height: 1; }
-  .total-sub { font-size: 0.72rem; color: rgba(255,255,255,0.4); margin-top: 3px; }
+  .total-block.cap {
+    background: linear-gradient(135deg, rgba(26,78,126,0.3) 0%, rgba(26,78,126,0.2) 100%);
+    border-color: rgba(45,106,159,0.25);
+    border-left-color: var(--navy-600);
+  }
+  .total-label { font-size: 0.62rem; font-weight: 600; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+  .total-num { font-family: 'JetBrains Mono', monospace; font-size: 2rem; font-weight: 700; color: #fff; line-height: 1; }
+  .total-sub { font-size: 0.65rem; color: rgba(255,255,255,0.4); margin-top: 3px; }
 
   /* Site cards */
   .site-list {
-    flex: 1; overflow-y: auto;
     padding: 0 1.25rem 1rem;
     display: flex; flex-direction: column; gap: 0.5rem;
   }
-  .site-list::-webkit-scrollbar { width: 4px; }
-  .site-list::-webkit-scrollbar-thumb { background: rgba(47,152,121,0.3); border-radius: 2px; }
-
   .site-card {
     background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%);
     border: 1px solid rgba(255,255,255,0.08);
@@ -269,16 +322,17 @@
     animation: fadeIn 0.5s ease-out backwards;
   }
   .site-card:hover { border-color: rgba(47,152,121,0.35); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
-  @keyframes fadeIn {
-    from { opacity:0; transform:translateY(10px); }
-    to { opacity:1; transform:translateY(0); }
-  }
+  .site-card.partner-card { border-color: rgba(217,134,15,0.2); }
+  .site-card.partner-card:hover { border-color: rgba(217,134,15,0.5); }
+  @keyframes fadeIn { from { opacity:0;transform:translateY(10px); } to { opacity:1;transform:translateY(0); } }
+
   .site-card-header {
     background: linear-gradient(90deg, rgba(26,78,126,0.25) 0%, rgba(47,152,121,0.15) 100%);
     border-bottom: 1px solid rgba(255,255,255,0.07);
     padding: 0.6rem 0.9rem;
     display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
   }
+  .site-card-header.partner { background: linear-gradient(90deg, rgba(217,134,15,0.15) 0%, rgba(217,134,15,0.05) 100%); }
   .site-card-left { display:flex; align-items:center; gap:0.5rem; }
   .site-card-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
   .site-card-name { font-family:'Epilogue',sans-serif; font-size:0.85rem; font-weight:700; color:#fff; }
@@ -288,6 +342,9 @@
     letter-spacing:0.05em; text-transform:uppercase;
     background: rgba(47,152,121,0.2); border:1px solid rgba(47,152,121,0.35); color:var(--teal-500);
   }
+  .site-card-badge.partner {
+    background: rgba(217,134,15,0.15); border-color: rgba(217,134,15,0.4); color: var(--partner);
+  }
   .site-card-metrics {
     display:grid; grid-template-columns:1fr 1fr 1fr;
     gap:1px; background:rgba(255,255,255,0.04);
@@ -296,6 +353,17 @@
   .site-metric-label { font-size:0.58rem; font-weight:600; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:3px; }
   .site-metric-val { font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:700; color:#fff; line-height:1; }
   .site-metric-sub { font-size:0.6rem; color:rgba(255,255,255,0.35); margin-top:2px; }
+  .site-card-phone {
+    padding: 0.4rem 0.9rem 0.6rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem; color: var(--teal-500);
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+  .site-card-phone a { color: var(--teal-500); text-decoration: none; }
+  .site-card-phone a:hover { color: #fff; }
+  .site-card-phone.partner { color: var(--partner); }
+  .site-card-phone.partner a { color: var(--partner); }
+
   .site-bar-wrap { padding:0.5rem 0.9rem 0.65rem; }
   .site-bar-row {
     display:flex; justify-content:space-between;
@@ -305,17 +373,24 @@
   }
   .site-bar-pct { color:var(--teal-500); font-weight:700; }
   .site-bar-track { height:5px; background:rgba(255,255,255,0.08); border-radius:3px; overflow:hidden; }
-  .site-bar-fill {
-    height:100%; border-radius:3px;
-    transition:width 1s cubic-bezier(0.4,0,0.2,1);
-    box-shadow:0 0 10px rgba(47,152,121,0.4);
+  .site-bar-fill { height:100%; border-radius:3px; transition:width 1s cubic-bezier(0.4,0,0.2,1); }
+
+  /* Partner reference card */
+  .partner-ref {
+    padding: 0.75rem 0.9rem;
+    display: flex; align-items: center; justify-content: space-between;
   }
+  .partner-ref-info { display: flex; flex-direction: column; gap: 2px; }
+  .partner-ref-label { font-size: 0.58rem; font-weight: 600; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.08em; }
+  .partner-ref-phone { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--partner); }
+  .partner-ref-phone a { color: var(--partner); text-decoration: none; }
+  .partner-ref-phone a:hover { color: #fff; }
 
   /* Legend */
   .legend-block {
     padding:0.75rem 1.25rem;
     border-top:1px solid rgba(255,255,255,0.06);
-    display:flex; gap:1.25rem; flex-shrink:0;
+    display:flex; gap:1rem; flex-wrap: wrap; flex-shrink:0;
   }
   .legend-item { display:flex; align-items:center; gap:6px; }
   .legend-dot { width:9px; height:9px; border-radius:50%; border:2px solid rgba(255,255,255,0.5); }
@@ -338,58 +413,20 @@
   }
   .modal::-webkit-scrollbar { width:4px; }
   .modal::-webkit-scrollbar-thumb { background:rgba(47,152,121,0.3); border-radius:2px; }
-  .modal-title {
-    font-family:'Epilogue',sans-serif; font-size:1.2rem; font-weight:900;
-    text-transform:uppercase; letter-spacing:-0.01em; color:#fff; margin-bottom:4px;
-  }
-  .modal-sub {
-    font-family:'JetBrains Mono',monospace; font-size:0.65rem;
-    color:rgba(255,255,255,0.35); letter-spacing:0.08em;
-    text-transform:uppercase; margin-bottom:1.5rem;
-  }
-  .form-block {
-    background:rgba(255,255,255,0.03);
-    border:1px solid rgba(255,255,255,0.08);
-    border-radius:6px; padding:1rem; margin-bottom:0.75rem;
-  }
-  .form-block-title {
-    display:flex; align-items:center; gap:8px;
-    font-family:'Epilogue',sans-serif; font-size:0.85rem; font-weight:700;
-    text-transform:uppercase; letter-spacing:0.05em; color:#fff; margin-bottom:0.75rem;
-  }
+  .modal-title { font-family:'Epilogue',sans-serif; font-size:1.2rem; font-weight:900; text-transform:uppercase; letter-spacing:-0.01em; color:#fff; margin-bottom:4px; }
+  .modal-sub { font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:rgba(255,255,255,0.35); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:1.5rem; }
+  .form-block { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:1rem; margin-bottom:0.75rem; }
+  .form-block-title { display:flex; align-items:center; gap:8px; font-family:'Epilogue',sans-serif; font-size:0.85rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#fff; margin-bottom:0.75rem; }
   .form-block-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
-  .form-block-type {
-    font-size:0.6rem; color:rgba(255,255,255,0.35);
-    font-family:'JetBrains Mono',monospace; letter-spacing:0.06em;
-    text-transform:uppercase; font-weight:400;
-  }
+  .form-block-type { font-size:0.6rem; color:rgba(255,255,255,0.35); font-family:'JetBrains Mono',monospace; letter-spacing:0.06em; text-transform:uppercase; font-weight:400; }
   .form-fields { display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; }
-  .form-field label {
-    font-size:0.6rem; font-weight:600; color:rgba(255,255,255,0.4);
-    text-transform:uppercase; letter-spacing:0.08em;
-    display:block; margin-bottom:4px; font-family:'JetBrains Mono',monospace;
-  }
-  .form-input {
-    width:100%; background:rgba(255,255,255,0.06);
-    border:1px solid rgba(255,255,255,0.1); border-radius:5px;
-    color:#fff; font-family:'JetBrains Mono',monospace;
-    font-size:0.875rem; padding:7px 10px; outline:none; transition:border-color 0.2s;
-  }
+  .form-field label { font-size:0.6rem; font-weight:600; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.08em; display:block; margin-bottom:4px; font-family:'JetBrains Mono',monospace; }
+  .form-input { width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:5px; color:#fff; font-family:'JetBrains Mono',monospace; font-size:0.875rem; padding:7px 10px; outline:none; transition:border-color 0.2s; }
   .form-input:focus { border-color:var(--teal-500); }
   .modal-actions { display:flex; gap:0.75rem; margin-top:1.5rem; }
-  .btn-save {
-    flex:1; background:var(--teal-500); border:none; color:#fff;
-    font-family:'Epilogue',sans-serif; font-size:0.875rem; font-weight:800;
-    text-transform:uppercase; letter-spacing:0.05em; padding:0.75rem;
-    border-radius:6px; cursor:pointer; transition:background 0.2s;
-  }
+  .btn-save { flex:1; background:var(--teal-500); border:none; color:#fff; font-family:'Epilogue',sans-serif; font-size:0.875rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; padding:0.75rem; border-radius:6px; cursor:pointer; transition:background 0.2s; }
   .btn-save:hover { background:var(--teal-400); }
-  .btn-cancel {
-    background:transparent; border:1px solid rgba(255,255,255,0.15);
-    color:rgba(255,255,255,0.5); font-family:'Epilogue',sans-serif;
-    font-size:0.875rem; font-weight:700; text-transform:uppercase;
-    padding:0.75rem 1.25rem; border-radius:6px; cursor:pointer; transition:all 0.2s;
-  }
+  .btn-cancel { background:transparent; border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.5); font-family:'Epilogue',sans-serif; font-size:0.875rem; font-weight:700; text-transform:uppercase; padding:0.75rem 1.25rem; border-radius:6px; cursor:pointer; transition:all 0.2s; }
   .btn-cancel:hover { border-color:rgba(255,255,255,0.3); color:#fff; }
 </style>
 </head>
@@ -405,7 +442,7 @@
       <div class="pulse-dot"></div>
       <div class="badge-text">ACTIVE EVACUATION</div>
     </div>
-    <div class="timestamp-box">As of <span id="ts-display">Not yet updated</span></div>
+    <div class="timestamp-box">As of <span id="ts-display">Loading...</span></div>
     <button class="admin-header-btn" onclick="openAdmin()">⚙ Update Numbers</button>
     <button class="export-header-btn" onclick="exportImage()">⬇ Export Image</button>
   </div>
@@ -422,13 +459,13 @@
       <div class="section-title">System-Wide Total</div>
       <div class="section-line"></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin:0.5rem 1.25rem 0.75rem;">
-      <div class="total-block" style="margin:0;">
+    <div class="totals-row">
+      <div class="total-block">
         <div class="total-label">Evacuees</div>
         <div class="total-num" id="total-num">0</div>
         <div class="total-sub">across all sites</div>
       </div>
-      <div class="total-block" style="margin:0;border-left-color:var(--navy-600);">
+      <div class="total-block cap">
         <div class="total-label">Capacity</div>
         <div class="total-num" id="total-cap">0</div>
         <div class="total-sub">remaining spots</div>
@@ -442,7 +479,11 @@
     <div class="legend-block">
       <div class="legend-item">
         <div class="legend-dot" style="background:var(--host-green)"></div>
-        <div class="legend-text">Host Site</div>
+        <div class="legend-text">Loomex Host Site</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--partner)"></div>
+        <div class="legend-text">Partner Site</div>
       </div>
       <div class="legend-item">
         <div class="legend-dot" style="background:var(--home-blue)"></div>
@@ -468,46 +509,63 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // SITE DATA — edit x/y (0–100) to reposition pins
 // x = left-to-right %, y = top-to-bottom %
-// The map image sits centered in the map container
+// To add a new Loomex host site:
+//   { id:'cityname', name:'City Name', type:'host', count:0, capacity:0, phone:'705-000-0000', x:00.0, y:00.0 }
+// To add a new partner site (reference only, no counts):
+//   { id:'cityname', name:'City Name', type:'partner', phone:'705-000-0000', x:00.0, y:00.0 }
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const sites = [
   {
     id: 'kashechewan', name: 'Kashechewan', type: 'home',
     count: 0, capacity: 0,
-    // James Bay coast, far north
     x: 40.0, y: 26.0
   },
   {
     id: 'kapuskasing', name: 'Kapuskasing', type: 'host',
     count: 0, capacity: 0,
-    // North-central Ontario
-    x: 42.0, y: 41.0
+    phone: '705-740-3285',
+    x: 42.0, y: 41.0,
+    cardDir: 'left'
   },
   {
     id: 'timmins', name: 'Timmins', type: 'host',
     count: 0, capacity: 0,
-    // Slightly east of Kapuskasing
-    x: 47.0, y: 46.0
+    phone: '705-740-3989',
+    x: 47.0, y: 46.0,
+    cardDir: 'right'
   },
   {
     id: 'kingston', name: 'Kingston', type: 'host-kingston',
     count: 0, capacity: 0,
-    // Eastern Ontario, north shore of Lake Ontario
+    phone: '705-740-4408',
     x: 60.0, y: 62, paired: true
   },
   {
     id: 'kingston-west', name: 'Kingston West', type: 'host-kingston',
     count: 0, capacity: 0,
+    phone: '',
     x: 60.0, y: 62, paired: true, skipPin: true
+  },
+  {
+    id: 'niagara-falls', name: 'Niagara Falls', type: 'partner',
+    phone: '519-791-9088',
+    x: 56.0, y: 69.0,
+    cardDir: 'left'
+  },
+  {
+    id: 'cochrane', name: 'Cochrane', type: 'partner',
+    phone: '705-272-6758',
+    x: 43.0, y: 42.0,
+    cardDir: 'above'
   }
 ];
 
 let lastUpdated = null;
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// JSONBIN CONFIG — shared live data storage
+// JSONBIN CONFIG
 const BIN_ID  = '69a09bfdd0ea881f40dca468';
-const API_KEY = '$2a$10$bhTfRtne8PNq7ihmCzHrJ.oZUTqNnrZEl.bzV0Po9Q17rMsvkU2zq ';
+const API_KEY = '$2a$10$yix8gE4u8dK1HPdVeiQZauXduGGWkuQ3pkgbMl4nBVXEzbMsi2ogK';
 const BIN_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
 async function loadFromBin() {
@@ -515,10 +573,10 @@ async function loadFromBin() {
     const res = await fetch(BIN_URL + '/latest', {
       headers: { 'X-Master-Key': API_KEY }
     });
-    if (!res.ok) throw new Error('Load failed');
-    const json = await res.json();
+    const text = await res.text();
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0,100)}`);
+    const json = JSON.parse(text);
     const data = json.record;
-    // Merge saved counts/capacity into sites array
     data.sites.forEach(saved => {
       const site = sites.find(s => s.id === saved.id);
       if (site) {
@@ -529,34 +587,29 @@ async function loadFromBin() {
     lastUpdated = data.lastUpdated || null;
     renderAll();
   } catch(e) {
-    console.warn('JSONBin load error:', e);
-    renderAll(); // render with defaults if load fails
+    console.warn('JSONBin load error:', e.message);
+    renderAll();
   }
 }
 
 async function saveToBin() {
   const payload = {
     lastUpdated: lastUpdated,
-    sites: sites.map(s => ({ id: s.id, count: s.count, capacity: s.capacity }))
+    sites: sites.map(s => ({ id: s.id, count: s.count || 0, capacity: s.capacity || 0 }))
   };
   try {
     const res = await fetch(BIN_URL, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Master-Key': API_KEY
-      },
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
       body: JSON.stringify(payload)
     });
     if (!res.ok) throw new Error('Save failed');
-    console.log('Saved to JSONBin');
   } catch(e) {
     console.warn('JSONBin save error:', e);
-    alert('Warning: numbers updated locally but could not sync to shared storage. Check your connection.');
+    alert('Warning: numbers updated locally but could not sync. Check your connection.');
   }
 }
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 
 function getFillColor(pct) {
   if (pct > 85) return '#C0392B';
@@ -565,88 +618,115 @@ function getFillColor(pct) {
 }
 
 function fillPct(site) {
-  const total = site.count + site.capacity; // evacuees + available = total capacity
+  const total = site.count + site.capacity;
   if (!total) return 0;
   return Math.min(100, Math.round(site.count / total * 100));
 }
 
+// ── RENDER PINS ──
 function renderPins() {
   const overlay = document.getElementById('map-overlay');
   overlay.innerHTML = '';
 
-  const kingSites = sites.filter(s => s.type === 'host-kingston');
-  const hosts = sites.filter(s => s.type === 'host');
-  const kash = sites.find(s => s.id === 'kashechewan');
+  sites.forEach(site => {
+    if (site.skipPin) return;
 
-  // Single-site pins
-  [...hosts, kash].forEach(site => {
     const pin = document.createElement('div');
-    pin.className = 'site-pin type-' + (site.type === 'host' ? 'host' : 'home');
+    pin.className = 'site-pin type-' + (site.type === 'host-kingston' ? 'kingston' : site.type);
     pin.style.left = site.x + '%';
-    pin.style.top = site.y + '%';
-    const pct = fillPct(site);
-    let countHTML = site.type === 'home'
-      ? `<div class="pin-count" style="font-size:11px;color:rgba(255,255,255,0.5)">Origin Community</div>`
-      : `<div class="pin-count green">${site.count.toLocaleString()}</div>
-         <div class="pin-cap">${site.capacity.toLocaleString()} avail · ${pct}%</div>`;
-    pin.innerHTML = `
-      <div class="pin-dot"></div>
-      <div class="pin-card">
-        <div class="pin-city">${site.name}</div>
-        ${countHTML}
-      </div>`;
+    pin.style.top  = site.y + '%';
+
+    const dir = site.cardDir || 'right';
+    const cardClass = dir === 'above' ? 'above' : dir === 'below' ? 'below' : dir === 'left' ? 'left' : '';
+    const phoneHTML = site.phone ? `<a class="pin-phone" href="tel:${site.phone}">${site.phone}</a>` : '';
+
+    let cardHTML = '';
+
+    if (site.type === 'home') {
+      cardHTML = `
+        <div class="pin-card ${cardClass}" style="border-left-color:var(--home-blue)">
+          <div class="pin-city">${site.name}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.5)">Origin Community</div>
+        </div>`;
+
+    } else if (site.type === 'partner') {
+      cardHTML = `
+        <div class="pin-card ${cardClass}" style="border-left-color:var(--partner)">
+          <div class="pin-badge partner">Partner Site</div>
+          <div class="pin-city">${site.name}</div>
+          ${phoneHTML}
+        </div>`;
+
+    } else if (site.type === 'host-kingston') {
+      const k0 = sites.find(s => s.id === 'kingston');
+      const k1 = sites.find(s => s.id === 'kingston-west');
+      const p0 = k0.phone ? `<a class="pin-dual-phone" href="tel:${k0.phone}">${k0.phone}</a>` : '';
+      cardHTML = `
+        <div class="pin-card ${cardClass}" style="border-left-color:var(--host-green);min-width:200px">
+          <div class="pin-city" style="margin-bottom:5px">Kingston Area</div>
+          <div class="pin-dual-row">
+            <div class="pin-dual-site">
+              <div class="pin-dual-label">Kingston</div>
+              <div class="pin-dual-num">${k0.count.toLocaleString()}</div>
+              <div class="pin-dual-cap">${k0.capacity} avail · ${fillPct(k0)}%</div>
+              ${p0}
+            </div>
+            <div class="pin-dual-site">
+              <div class="pin-dual-label">Kingston West</div>
+              <div class="pin-dual-num">${k1.count.toLocaleString()}</div>
+              <div class="pin-dual-cap">${k1.capacity} avail · ${fillPct(k1)}%</div>
+            </div>
+          </div>
+        </div>`;
+
+    } else {
+      // host
+      const pct = fillPct(site);
+      cardHTML = `
+        <div class="pin-card ${cardClass}" style="border-left-color:var(--host-green)">
+          <div class="pin-city">${site.name}</div>
+          <div class="pin-count green">${site.count.toLocaleString()}</div>
+          <div class="pin-cap">${site.capacity} avail · ${pct}%</div>
+          ${phoneHTML}
+        </div>`;
+    }
+
+    pin.innerHTML = `<div class="pin-dot"></div>${cardHTML}`;
     overlay.appendChild(pin);
   });
-
-  // Kingston combined pin
-  const k0 = kingSites[0], k1 = kingSites[1];
-  const kpin = document.createElement('div');
-  kpin.className = 'site-pin type-kingston';
-  kpin.style.left = k0.x + '%';
-  kpin.style.top = k0.y + '%';
-  kpin.innerHTML = `
-    <div class="pin-dot" style="background:var(--host-green)"></div>
-    <div class="pin-card" style="min-width:185px">
-      <div class="pin-city" style="margin-bottom:5px">Kingston Area</div>
-      <div class="pin-dual-row">
-        <div class="pin-dual-site">
-          <div class="pin-dual-label">Kingston</div>
-          <div class="pin-dual-num">${k0.count.toLocaleString()}</div>
-          <div class="pin-dual-cap">/ ${k0.capacity.toLocaleString()} · ${fillPct(k0)}%</div>
-        </div>
-        <div class="pin-dual-site">
-          <div class="pin-dual-label">Kingston West</div>
-          <div class="pin-dual-num">${k1.count.toLocaleString()}</div>
-          <div class="pin-dual-cap">/ ${k1.capacity.toLocaleString()} · ${fillPct(k1)}%</div>
-        </div>
-      </div>
-    </div>`;
-  overlay.appendChild(kpin);
 }
 
+// ── RENDER SIDEBAR ──
 function renderSidebar() {
   const hostSites = sites.filter(s => s.type === 'host' || s.type === 'host-kingston');
+  const partnerSites = sites.filter(s => s.type === 'partner');
   const sorted = [...hostSites].sort((a, b) => fillPct(b) - fillPct(a));
-  const total = hostSites.reduce((sum, s) => sum + s.count, 0);
+
+  const total    = hostSites.reduce((sum, s) => sum + s.count, 0);
   const totalCap = hostSites.reduce((sum, s) => sum + s.capacity, 0);
   document.getElementById('total-num').textContent = total.toLocaleString();
   document.getElementById('total-cap').textContent = totalCap.toLocaleString();
 
   const list = document.getElementById('site-list');
   list.innerHTML = '';
+
+  // Loomex host site cards
   sorted.forEach((site, i) => {
     const pct = fillPct(site);
     const fillColor = getFillColor(pct);
     const card = document.createElement('div');
     card.className = 'site-card';
     card.style.animationDelay = (i * 0.07) + 's';
+    const phoneRow = site.phone
+      ? `<div class="site-card-phone"><a href="tel:${site.phone}">${site.phone}</a></div>`
+      : '';
     card.innerHTML = `
       <div class="site-card-header">
         <div class="site-card-left">
           <div class="site-card-dot" style="background:var(--host-green)"></div>
           <div class="site-card-name">${site.name}</div>
         </div>
-        <div class="site-card-badge">HOST SITE</div>
+        <div class="site-card-badge">LOOMEX</div>
       </div>
       <div class="site-card-metrics">
         <div class="site-metric">
@@ -672,33 +752,73 @@ function renderSidebar() {
         <div class="site-bar-track">
           <div class="site-bar-fill" style="width:${pct}%;background:${fillColor}"></div>
         </div>
-      </div>`;
+      </div>
+      ${phoneRow}`;
     list.appendChild(card);
   });
+
+  // Partner site cards
+  if (partnerSites.length) {
+    const partnerHeader = document.createElement('div');
+    partnerHeader.className = 'section-header';
+    partnerHeader.style.marginTop = '0.5rem';
+    partnerHeader.innerHTML = `
+      <div class="section-title" style="color:rgba(217,134,15,0.7)">Partner Sites</div>
+      <div class="section-line"></div>`;
+    list.appendChild(partnerHeader);
+
+    partnerSites.forEach((site, i) => {
+      const card = document.createElement('div');
+      card.className = 'site-card partner-card';
+      card.style.animationDelay = ((sorted.length + i) * 0.07) + 's';
+      const phoneRow = site.phone
+        ? `<div class="site-card-phone partner"><a href="tel:${site.phone}">${site.phone}</a></div>`
+        : '';
+      card.innerHTML = `
+        <div class="site-card-header partner">
+          <div class="site-card-left">
+            <div class="site-card-dot" style="background:var(--partner)"></div>
+            <div class="site-card-name">${site.name}</div>
+          </div>
+          <div class="site-card-badge partner">PARTNER</div>
+        </div>
+        <div class="partner-ref">
+          <div class="partner-ref-info">
+            <div class="partner-ref-label">Contact</div>
+            <div class="partner-ref-phone"><a href="tel:${site.phone}">${site.phone}</a></div>
+          </div>
+        </div>`;
+      list.appendChild(card);
+    });
+  }
 }
 
+// ── TIMESTAMP ──
 function renderTimestamp() {
   if (lastUpdated) {
     const d = new Date(lastUpdated);
     document.getElementById('ts-display').textContent =
       d.toLocaleDateString('en-CA', {year:'numeric',month:'short',day:'numeric'}) + ' ' +
       d.toLocaleTimeString('en-CA', {hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
+  } else {
+    document.getElementById('ts-display').textContent = 'Not yet updated';
   }
 }
 
 function renderAll() { renderPins(); renderSidebar(); renderTimestamp(); }
 
+// ── ADMIN MODAL ──
 function openAdmin() {
   const container = document.getElementById('form-blocks');
   container.innerHTML = '';
-  sites.filter(s => s.type !== 'home').forEach(site => {
+  sites.filter(s => s.type === 'host' || s.type === 'host-kingston').forEach(site => {
     const block = document.createElement('div');
     block.className = 'form-block';
     block.innerHTML = `
       <div class="form-block-title">
         <div class="form-block-dot" style="background:var(--host-green)"></div>
         ${site.name}
-        <span class="form-block-type">Host Site</span>
+        <span class="form-block-type">Loomex Host Site</span>
       </div>
       <div class="form-fields">
         <div class="form-field">
@@ -718,10 +838,10 @@ function openAdmin() {
 function closeAdmin() { document.getElementById('admin-modal').classList.remove('open'); }
 
 function saveAdmin() {
-  sites.filter(s => s.type !== 'home').forEach(site => {
+  sites.filter(s => s.type === 'host' || s.type === 'host-kingston').forEach(site => {
     const c = document.getElementById('fc-' + site.id);
     const k = document.getElementById('fk-' + site.id);
-    if (c) site.count = parseInt(c.value) || 0;
+    if (c) site.count    = parseInt(c.value) || 0;
     if (k) site.capacity = parseInt(k.value) || 0;
   });
   lastUpdated = new Date().toISOString();
@@ -734,6 +854,7 @@ document.getElementById('admin-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeAdmin();
 });
 
+// ── EXPORT ──
 function exportImage() {
   if (typeof html2canvas === 'undefined') {
     alert('Export requires an internet connection. html2canvas loads from CDN.');
@@ -742,99 +863,42 @@ function exportImage() {
 
   const EXPORT_W = 1400;
   const EXPORT_H = 900;
-
-  // 1. Lock body dimensions
-  const body = document.body;
-  const origBodyWidth    = body.style.width;
-  const origBodyHeight   = body.style.height;
-  const origBodyOverflow = body.style.overflow;
-  const origBodyMinH     = body.style.minHeight;
-  body.style.width     = EXPORT_W + 'px';
-  body.style.height    = EXPORT_H + 'px';
-  body.style.overflow  = 'hidden';
-  body.style.minHeight = 'unset';
-
-  // 2. Fix gradient text clipping on title
-  const titleEl = document.querySelector('.header-title');
-  const origTitleColor    = titleEl.style.color;
-  const origTitleBgClip   = titleEl.style.webkitBackgroundClip;
-  const origTitleTextFill = titleEl.style.webkitTextFillColor;
-  const origTitleBg       = titleEl.style.background;
-  titleEl.style.background           = 'none';
-  titleEl.style.webkitBackgroundClip = 'unset';
-  titleEl.style.webkitTextFillColor  = '#ffffff';
-  titleEl.style.color                = '#ffffff';
-
-  // 3. Hide buttons
-  const adminBtn  = document.querySelector('.admin-header-btn');
-  const exportBtn = document.querySelector('.export-header-btn');
-  adminBtn.style.display  = 'none';
-  exportBtn.style.display = 'none';
-
-  // Restore body + title immediately — we won't touch the live layout at all
-  body.style.width     = origBodyWidth;
-  body.style.height    = origBodyHeight;
-  body.style.overflow  = origBodyOverflow;
-  body.style.minHeight = origBodyMinH;
-  titleEl.style.background           = origTitleBg;
-  titleEl.style.webkitBackgroundClip = origTitleBgClip;
-  titleEl.style.webkitTextFillColor  = origTitleTextFill;
-  titleEl.style.color                = origTitleColor;
-  adminBtn.style.display  = '';
-  exportBtn.style.display = '';
-
-  // Build a completely separate flat export frame — no flex, no overflow:hidden
-  // html2canvas captures this, then it's removed. Live layout is never mutated.
   const SIDEBAR_W = 320;
   const MAP_W = EXPORT_W - SIDEBAR_W;
   const HEADER_H = 62;
   const MAP_H = EXPORT_H - HEADER_H;
 
-  const hostSites = sites.filter(s => s.type === 'host' || s.type === 'host-kingston');
-  const sorted = [...hostSites].sort((a, b) => fillPct(b) - fillPct(a));
-  const total = hostSites.reduce((sum, s) => sum + s.count, 0);
+  const body = document.body;
+  const origBodyWidth    = body.style.width;
+  const origBodyHeight   = body.style.height;
+  const origBodyOverflow = body.style.overflow;
+  const origBodyMinH     = body.style.minHeight;
+  body.style.width = EXPORT_W + 'px';
+  body.style.height = EXPORT_H + 'px';
+  body.style.overflow = 'hidden';
+  body.style.minHeight = 'unset';
 
-  // Build sidebar cards HTML
-  let cardsHTML = '';
-  sorted.forEach(site => {
-    const pct = fillPct(site);
-    const fillColor = getFillColor(pct);
-    cardsHTML += `
-      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;overflow:hidden;margin-bottom:7px;">
-        <div style="background:linear-gradient(90deg,rgba(26,78,126,0.25),rgba(47,152,121,0.15));border-bottom:1px solid rgba(255,255,255,0.07);padding:7px 10px;display:flex;align-items:center;justify-content:space-between;">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <div style="width:8px;height:8px;border-radius:50%;background:#2F9879;flex-shrink:0;"></div>
-            <span style="font-family:Epilogue,sans-serif;font-size:13px;font-weight:700;color:#fff;">${site.name}</span>
-          </div>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 7px;border-radius:3px;font-weight:600;letter-spacing:.05em;background:rgba(47,152,121,0.2);border:1px solid rgba(47,152,121,0.35);color:#2F9879;">HOST SITE</span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:rgba(255,255,255,0.04);">
-          <div style="background:rgba(255,255,255,0.02);padding:8px 10px;">
-            <div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Evacuees</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;color:#2F9879;">${site.count.toLocaleString()}</div>
-          </div>
-          <div style="background:rgba(255,255,255,0.02);padding:8px 10px;">
-            <div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Available</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;color:#fff;">${site.capacity.toLocaleString()}</div>
-            <div style="font-size:9px;color:rgba(255,255,255,0.35);">remaining</div>
-          </div>
-          <div style="background:rgba(255,255,255,0.02);padding:8px 10px;">
-            <div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Utilization</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;color:#fff;">${pct}%</div>
-          </div>
-        </div>
-        <div style="padding:7px 10px 9px;">
-          <div style="display:flex;justify-content:space-between;font-size:9px;color:rgba(255,255,255,0.45);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">
-            <span>Occupancy</span><span style="color:#2F9879;font-weight:700;">${pct}%</span>
-          </div>
-          <div style="height:5px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
-            <div style="height:100%;width:${pct}%;background:${fillColor};border-radius:3px;"></div>
-          </div>
-        </div>
-      </div>`;
-  });
+  const titleEl = document.querySelector('.header-title');
+  const origTitleColor    = titleEl.style.color;
+  const origTitleBg       = titleEl.style.background;
+  const origTitleBgClip   = titleEl.style.webkitBackgroundClip;
+  const origTitleTextFill = titleEl.style.webkitTextFillColor;
+  titleEl.style.background = 'none';
+  titleEl.style.webkitBackgroundClip = 'unset';
+  titleEl.style.webkitTextFillColor = '#ffffff';
+  titleEl.style.color = '#ffffff';
 
-  // Timestamp string
+  const adminBtn  = document.querySelector('.admin-header-btn');
+  const exportBtn = document.querySelector('.export-header-btn');
+  adminBtn.style.display  = 'none';
+  exportBtn.style.display = 'none';
+
+  const hostSites   = sites.filter(s => s.type === 'host' || s.type === 'host-kingston');
+  const partnerSites = sites.filter(s => s.type === 'partner');
+  const sorted      = [...hostSites].sort((a, b) => fillPct(b) - fillPct(a));
+  const total       = hostSites.reduce((sum, s) => sum + s.count, 0);
+  const totalCap    = hostSites.reduce((sum, s) => sum + s.capacity, 0);
+
   let tsStr = 'Not yet updated';
   if (lastUpdated) {
     const d = new Date(lastUpdated);
@@ -842,29 +906,73 @@ function exportImage() {
             d.toLocaleTimeString('en-CA', {hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
   }
 
-  // Get the map image src from the live page
   const mapSrc = document.querySelector('.map-img').src;
+
+  let cardsHTML = '';
+  sorted.forEach(site => {
+    const pct = fillPct(site);
+    const fc  = getFillColor(pct);
+    const ph  = site.phone ? `<div style="padding:4px 10px 6px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#2F9879;border-top:1px solid rgba(255,255,255,0.05);">${site.phone}</div>` : '';
+    cardsHTML += `
+      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;overflow:hidden;margin-bottom:6px;">
+        <div style="background:linear-gradient(90deg,rgba(26,78,126,0.25),rgba(47,152,121,0.15));border-bottom:1px solid rgba(255,255,255,0.07);padding:6px 10px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#2F9879;flex-shrink:0;"></div>
+            <span style="font-family:Epilogue,sans-serif;font-size:12px;font-weight:700;color:#fff;">${site.name}</span>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600;background:rgba(47,152,121,0.2);border:1px solid rgba(47,152,121,0.35);color:#2F9879;">LOOMEX</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:rgba(255,255,255,0.04);">
+          <div style="background:rgba(255,255,255,0.02);padding:7px 8px;">
+            <div style="font-size:8px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">Evacuees</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:#2F9879;">${site.count.toLocaleString()}</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.02);padding:7px 8px;">
+            <div style="font-size:8px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">Available</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:#fff;">${site.capacity.toLocaleString()}</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.02);padding:7px 8px;">
+            <div style="font-size:8px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">Utilization</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:#fff;">${pct}%</div>
+          </div>
+        </div>
+        <div style="padding:5px 10px 7px;">
+          <div style="display:flex;justify-content:space-between;font-size:8px;color:rgba(255,255,255,0.45);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;font-family:'JetBrains Mono',monospace;">
+            <span>Occupancy</span><span style="color:#2F9879">${pct}%</span>
+          </div>
+          <div style="height:4px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:${fc};border-radius:3px;"></div>
+          </div>
+        </div>
+        ${ph}
+      </div>`;
+  });
+
+  let partnerCardsHTML = '';
+  partnerSites.forEach(site => {
+    partnerCardsHTML += `
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(217,134,15,0.2);border-radius:6px;overflow:hidden;margin-bottom:6px;">
+        <div style="background:linear-gradient(90deg,rgba(217,134,15,0.15),rgba(217,134,15,0.05));border-bottom:1px solid rgba(255,255,255,0.07);padding:6px 10px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#D9860F;flex-shrink:0;"></div>
+            <span style="font-family:Epilogue,sans-serif;font-size:12px;font-weight:700;color:#fff;">${site.name}</span>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600;background:rgba(217,134,15,0.15);border:1px solid rgba(217,134,15,0.4);color:#D9860F;">PARTNER</span>
+        </div>
+        <div style="padding:8px 10px;">
+          <div style="font-size:8px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Contact</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#D9860F;">${site.phone}</div>
+        </div>
+      </div>`;
+  });
 
   const frame = document.createElement('div');
   frame.id = 'export-frame';
-  frame.style.cssText = `
-    position: fixed;
-    top: -9999px;
-    left: 0;
-    width: ${EXPORT_W}px;
-    height: ${EXPORT_H}px;
-    background: linear-gradient(135deg, #0A1929 0%, #1A2B35 100%);
-    font-family: 'DM Sans', sans-serif;
-    color: white;
-    overflow: hidden;
-    z-index: -1;
-  `;
+  frame.style.cssText = `position:fixed;top:-9999px;left:0;width:${EXPORT_W}px;height:${EXPORT_H}px;background:linear-gradient(135deg,#0A1929 0%,#1A2B35 100%);font-family:'DM Sans',sans-serif;color:white;overflow:hidden;z-index:-1;`;
 
   frame.innerHTML = `
     <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(47,152,121,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(47,152,121,0.03) 1px,transparent 1px);background-size:40px 40px;"></div>
-
-    <!-- HEADER -->
-    <div style="position:absolute;top:0;left:0;right:0;height:${HEADER_H}px;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;border-bottom:2px solid rgba(47,152,121,0.2);z-index:2;">
+    <div style="position:absolute;top:0;left:0;right:0;height:${HEADER_H}px;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;border-bottom:2px solid rgba(47,152,121,0.2);z-index:2;background:rgba(10,25,41,0.95);">
       <div>
         <div style="font-family:Epilogue,sans-serif;font-size:1.4rem;font-weight:900;letter-spacing:-.02em;text-transform:uppercase;color:#fff;">Loomex Emergency Operations</div>
         <div style="font-family:'JetBrains Mono',monospace;font-size:.65rem;color:rgba(255,255,255,0.4);letter-spacing:.15em;text-transform:uppercase;">Evacuation Status – Kashechewan First Nation</div>
@@ -877,136 +985,101 @@ function exportImage() {
         <div style="font-family:'JetBrains Mono',monospace;font-size:.7rem;color:rgba(255,255,255,0.4);padding:.6rem 1rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;">As of ${tsStr}</div>
       </div>
     </div>
-
-    <!-- MAP AREA -->
     <div style="position:absolute;top:${HEADER_H}px;left:0;width:${MAP_W}px;height:${MAP_H}px;overflow:hidden;">
       <img src="${mapSrc}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:92%;height:92%;object-fit:contain;filter:brightness(0.45) sepia(1) hue-rotate(175deg) saturate(0.8) brightness(1.6);opacity:0.9;">
       <div id="ef-pins" style="position:absolute;inset:0;"></div>
     </div>
-
-    <!-- SIDEBAR -->
-    <div style="position:absolute;top:${HEADER_H}px;right:0;width:${SIDEBAR_W}px;height:${MAP_H}px;background:rgba(10,25,41,0.7);border-left:1px solid rgba(47,152,121,0.15);padding:0;">
-
-      <!-- Section header -->
-      <div style="display:flex;align-items:center;gap:.75rem;padding:1rem 1.25rem .5rem;">
+    <div style="position:absolute;top:${HEADER_H}px;right:0;width:${SIDEBAR_W}px;height:${MAP_H}px;background:rgba(10,25,41,0.7);border-left:1px solid rgba(47,152,121,0.15);overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:.75rem;padding:.75rem 1.25rem .4rem;">
         <span style="font-family:Epilogue,sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.6);">System-Wide Total</span>
         <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.15),transparent);"></div>
       </div>
-
-      <!-- Total blocks -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin:.5rem 1.25rem .75rem;">
-        <div style="background:linear-gradient(135deg,rgba(26,78,126,0.3),rgba(47,152,121,0.2));border:1px solid rgba(47,152,121,0.25);border-left:4px solid #2F9879;padding:.75rem 1rem;">
-          <div style="font-size:.6rem;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Evacuees</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:700;color:#fff;line-height:1;">${total.toLocaleString()}</div>
-          <div style="font-size:.65rem;color:rgba(255,255,255,0.4);margin-top:3px;">across all sites</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin:.25rem 1rem .6rem;">
+        <div style="background:linear-gradient(135deg,rgba(26,78,126,0.3),rgba(47,152,121,0.2));border:1px solid rgba(47,152,121,0.25);border-left:4px solid #2F9879;padding:.7rem .9rem;">
+          <div style="font-size:.6rem;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;">Evacuees</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:1.8rem;font-weight:700;color:#fff;line-height:1;">${total.toLocaleString()}</div>
+          <div style="font-size:.6rem;color:rgba(255,255,255,0.4);margin-top:2px;">across all sites</div>
         </div>
-        <div style="background:linear-gradient(135deg,rgba(26,78,126,0.3),rgba(26,78,126,0.2));border:1px solid rgba(45,106,159,0.25);border-left:4px solid #2D6A9F;padding:.75rem 1rem;">
-          <div style="font-size:.6rem;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Capacity</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:700;color:#fff;line-height:1;">${hostSites.reduce((s,x)=>s+x.capacity,0).toLocaleString()}</div>
-          <div style="font-size:.65rem;color:rgba(255,255,255,0.4);margin-top:3px;">remaining spots</div>
+        <div style="background:linear-gradient(135deg,rgba(26,78,126,0.3),rgba(26,78,126,0.2));border:1px solid rgba(45,106,159,0.25);border-left:4px solid #2D6A9F;padding:.7rem .9rem;">
+          <div style="font-size:.6rem;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;">Capacity</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:1.8rem;font-weight:700;color:#fff;line-height:1;">${totalCap.toLocaleString()}</div>
+          <div style="font-size:.6rem;color:rgba(255,255,255,0.4);margin-top:2px;">remaining spots</div>
         </div>
       </div>
-
-      <!-- Sites header -->
-      <div style="display:flex;align-items:center;gap:.75rem;padding:.25rem 1.25rem .5rem;">
-        <span style="font-family:Epilogue,sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.6);">Host Sites — by Occupancy</span>
+      <div style="display:flex;align-items:center;gap:.75rem;padding:.2rem 1.25rem .4rem;">
+        <span style="font-family:Epilogue,sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.6);">Host Sites</span>
         <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.15),transparent);"></div>
       </div>
-
-      <!-- Cards — no overflow, just stack -->
-      <div style="padding:0 1.25rem 1rem;">${cardsHTML}</div>
-
-      <!-- Legend -->
-      <div style="position:absolute;bottom:0;left:0;right:0;padding:.75rem 1.25rem;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:1.25rem;background:rgba(10,25,41,0.7);">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <div style="width:9px;height:9px;border-radius:50%;background:#2F9879;border:2px solid rgba(255,255,255,0.5);"></div>
-          <span style="font-size:.65rem;color:rgba(255,255,255,0.45);">Host Site</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <div style="width:9px;height:9px;border-radius:50%;background:#2D6A9F;border:2px solid rgba(255,255,255,0.5);"></div>
-          <span style="font-size:.65rem;color:rgba(255,255,255,0.45);">Home Community</span>
-        </div>
+      <div style="padding:0 1rem 0.5rem;">${cardsHTML}</div>
+      ${partnerCardsHTML ? `<div style="display:flex;align-items:center;gap:.75rem;padding:.2rem 1.25rem .4rem;"><span style="font-family:Epilogue,sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(217,134,15,0.7);">Partner Sites</span><div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.15),transparent);"></div></div><div style="padding:0 1rem;">${partnerCardsHTML}</div>` : ''}
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:.6rem 1.25rem;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:1rem;background:rgba(10,25,41,0.7);">
+        <div style="display:flex;align-items:center;gap:5px;"><div style="width:8px;height:8px;border-radius:50%;background:#2F9879;border:2px solid rgba(255,255,255,0.5);"></div><span style="font-size:.6rem;color:rgba(255,255,255,0.45);">Loomex Host</span></div>
+        <div style="display:flex;align-items:center;gap:5px;"><div style="width:8px;height:8px;border-radius:50%;background:#D9860F;border:2px solid rgba(255,255,255,0.5);"></div><span style="font-size:.6rem;color:rgba(255,255,255,0.45);">Partner</span></div>
+        <div style="display:flex;align-items:center;gap:5px;"><div style="width:8px;height:8px;border-radius:50%;background:#2D6A9F;border:2px solid rgba(255,255,255,0.5);"></div><span style="font-size:.6rem;color:rgba(255,255,255,0.45);">Home Community</span></div>
       </div>
-    </div>
-  `;
+    </div>`;
 
   document.body.appendChild(frame);
 
-  // Re-render pins into the export frame's map div
+  // Render pins into export frame
   const efPins = frame.querySelector('#ef-pins');
-  const efMapW = MAP_W;
-  const efMapH = MAP_H;
 
-  function efPin(site, extraHTML) {
+  function efPin(x, y, dotColor, cardHTML) {
     const el = document.createElement('div');
-    el.style.cssText = `position:absolute;left:${site.x}%;top:${site.y}%;transform:translate(-50%,-50%);z-index:5;`;
-    el.innerHTML = extraHTML;
+    el.style.cssText = `position:absolute;left:${x}%;top:${y}%;transform:translate(-50%,-50%);z-index:5;`;
+    el.innerHTML = `<div style="width:18px;height:18px;border-radius:50%;background:${dotColor};border:2.5px solid rgba(255,255,255,0.85);box-shadow:0 0 0 3px rgba(0,0,0,0.25);position:relative;z-index:2;"></div>${cardHTML}`;
     efPins.appendChild(el);
   }
 
-  // Kashechewan
   const kash = sites.find(s => s.id === 'kashechewan');
-  efPin(kash, `
-    <div style="width:18px;height:18px;border-radius:50%;background:#2D6A9F;border:2.5px solid rgba(255,255,255,0.85);box-shadow:0 0 0 3px rgba(0,0,0,0.25);position:relative;z-index:2;"></div>
-    <div style="position:absolute;left:26px;top:50%;transform:translateY(-50%);background:rgba(10,25,41,0.93);border:1px solid rgba(255,255,255,0.1);border-left:3px solid #2D6A9F;padding:8px 12px;white-space:nowrap;">
-      <div style="font-family:Epilogue,sans-serif;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#fff;margin-bottom:3px;">Kashechewan</div>
-      <div style="font-size:11px;color:rgba(255,255,255,0.5);">Origin Community</div>
-    </div>`);
+  efPin(kash.x, kash.y, '#2D6A9F', `<div style="position:absolute;left:26px;top:50%;transform:translateY(-50%);background:rgba(10,25,41,0.93);border:1px solid rgba(255,255,255,0.1);border-left:3px solid #2D6A9F;padding:7px 11px;white-space:nowrap;"><div style="font-family:Epilogue,sans-serif;font-size:11px;font-weight:800;text-transform:uppercase;color:#fff;margin-bottom:2px;">Kashechewan</div><div style="font-size:10px;color:rgba(255,255,255,0.5);">Origin Community</div></div>`);
 
-  // Regular host sites
   sites.filter(s => s.type === 'host').forEach(site => {
     const pct = fillPct(site);
-    efPin(site, `
-      <div style="width:18px;height:18px;border-radius:50%;background:#2F9879;border:2.5px solid rgba(255,255,255,0.85);box-shadow:0 0 0 3px rgba(0,0,0,0.25);position:relative;z-index:2;"></div>
-      <div style="position:absolute;left:26px;top:50%;transform:translateY(-50%);background:rgba(10,25,41,0.93);border:1px solid rgba(255,255,255,0.1);border-left:3px solid #2F9879;padding:8px 12px;white-space:nowrap;">
-        <div style="font-family:Epilogue,sans-serif;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#fff;margin-bottom:3px;">${site.name}</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;color:#2F9879;">${site.count.toLocaleString()}</div>
-        <div style="font-size:10px;color:rgba(255,255,255,0.4);">/ ${site.capacity.toLocaleString()} cap · ${pct}%</div>
-      </div>`);
+    const ph = site.phone ? `<div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#2F9879;margin-top:3px;">${site.phone}</div>` : '';
+    const cardPos = site.cardDir === 'above'
+      ? `position:absolute;left:50%;bottom:26px;transform:translateX(-50%);`
+      : site.cardDir === 'below'
+        ? `position:absolute;left:50%;top:26px;transform:translateX(0);`
+        : `position:absolute;left:26px;top:50%;transform:translateY(-50%);`;
+    efPin(site.x, site.y, '#2F9879', `<div style="${cardPos}background:rgba(10,25,41,0.93);border:1px solid rgba(255,255,255,0.1);border-left:3px solid #2F9879;padding:7px 11px;white-space:nowrap;"><div style="font-family:Epilogue,sans-serif;font-size:11px;font-weight:800;text-transform:uppercase;color:#fff;margin-bottom:2px;">${site.name}</div><div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:#2F9879;">${site.count.toLocaleString()}</div><div style="font-size:9px;color:rgba(255,255,255,0.4);">${site.capacity} avail · ${pct}%</div>${ph}</div>`);
   });
 
-  // Kingston combined pin
   const k0 = sites.find(s => s.id === 'kingston');
   const k1 = sites.find(s => s.id === 'kingston-west');
-  efPin(k0, `
-    <div style="width:18px;height:18px;border-radius:50%;background:#2F9879;border:2.5px solid rgba(255,255,255,0.85);box-shadow:0 0 0 3px rgba(0,0,0,0.25);position:relative;z-index:2;"></div>
-    <div style="position:absolute;left:26px;top:50%;transform:translateY(-50%);background:rgba(10,25,41,0.93);border:1px solid rgba(255,255,255,0.1);border-left:3px solid #2F9879;padding:8px 12px;white-space:nowrap;min-width:185px;">
-      <div style="font-family:Epilogue,sans-serif;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#fff;margin-bottom:5px;">Kingston Area</div>
-      <div style="display:flex;gap:10px;">
-        <div style="flex:1;">
-          <div style="font-size:9px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Kingston</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#2F9879;">${k0.count.toLocaleString()}</div>
-          <div style="font-size:9px;color:rgba(255,255,255,0.35);">/ ${k0.capacity.toLocaleString()} · ${fillPct(k0)}%</div>
-        </div>
-        <div style="flex:1;padding-left:10px;border-left:1px solid rgba(255,255,255,0.1);">
-          <div style="font-size:9px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Kingston West</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#2F9879;">${k1.count.toLocaleString()}</div>
-          <div style="font-size:9px;color:rgba(255,255,255,0.35);">/ ${k1.capacity.toLocaleString()} · ${fillPct(k1)}%</div>
-        </div>
-      </div>
-    </div>`);
+  efPin(k0.x, k0.y, '#2F9879', `<div style="position:absolute;left:26px;top:50%;transform:translateY(-50%);background:rgba(10,25,41,0.93);border:1px solid rgba(255,255,255,0.1);border-left:3px solid #2F9879;padding:7px 11px;white-space:nowrap;min-width:190px;"><div style="font-family:Epilogue,sans-serif;font-size:11px;font-weight:800;text-transform:uppercase;color:#fff;margin-bottom:4px;">Kingston Area</div><div style="display:flex;gap:10px;"><div style="flex:1;"><div style="font-size:8px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.4);text-transform:uppercase;margin-bottom:1px;">Kingston</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#2F9879;">${k0.count}</div><div style="font-size:8px;color:rgba(255,255,255,0.35);">${k0.capacity} avail · ${fillPct(k0)}%</div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:#2F9879;margin-top:2px;">${k0.phone}</div></div><div style="flex:1;padding-left:8px;border-left:1px solid rgba(255,255,255,0.1);"><div style="font-size:8px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.4);text-transform:uppercase;margin-bottom:1px;">Kingston West</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#2F9879;">${k1.count}</div><div style="font-size:8px;color:rgba(255,255,255,0.35);">${k1.capacity} avail · ${fillPct(k1)}%</div></div></div></div>`);
+
+  sites.filter(s => s.type === 'partner').forEach(site => {
+    efPin(site.x, site.y, '#D9860F', `<div style="position:absolute;left:26px;top:50%;transform:translateY(-50%);background:rgba(10,25,41,0.93);border:1px solid rgba(255,255,255,0.1);border-left:3px solid #D9860F;padding:7px 11px;white-space:nowrap;"><div style="font-size:8px;font-weight:700;color:#D9860F;letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px;">Partner Site</div><div style="font-family:Epilogue,sans-serif;font-size:11px;font-weight:800;text-transform:uppercase;color:#fff;margin-bottom:2px;">${site.name}</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#D9860F;">${site.phone}</div></div>`);
+  });
 
   setTimeout(() => {
     html2canvas(frame, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#0A1929',
-      logging: false,
-      width: EXPORT_W,
-      height: EXPORT_H,
-      windowWidth: EXPORT_W,
-      windowHeight: EXPORT_H
+      scale: 2, useCORS: true, backgroundColor: '#0A1929', logging: false,
+      width: EXPORT_W, height: EXPORT_H, windowWidth: EXPORT_W, windowHeight: EXPORT_H
     }).then(canvas => {
       document.body.removeChild(frame);
+      body.style.width     = origBodyWidth;
+      body.style.height    = origBodyHeight;
+      body.style.overflow  = origBodyOverflow;
+      body.style.minHeight = origBodyMinH;
+      titleEl.style.background           = origTitleBg;
+      titleEl.style.webkitBackgroundClip = origTitleBgClip;
+      titleEl.style.webkitTextFillColor  = origTitleTextFill;
+      titleEl.style.color                = origTitleColor;
+      adminBtn.style.display  = '';
+      exportBtn.style.display = '';
+      const _d = new Date();
+      const _date = _d.toISOString().slice(0,10);
+      const _hrs = String(_d.getHours()).padStart(2,'0') + String(_d.getMinutes()).padStart(2,'0');
       const a = document.createElement('a');
-      const _d = new Date(); const _date = _d.toISOString().slice(0,10); const _hrs = String(_d.getHours()).padStart(2,'0') + String(_d.getMinutes()).padStart(2,'0'); a.download = `Kashechewan-Evacuation-Status-${_date}-${_hrs}hrs.jpg`;
+      a.download = `Kashechewan-Evacuation-Status-${_date}-${_hrs}hrs.jpg`;
       a.href = canvas.toDataURL('image/jpeg', 0.95);
       a.click();
     });
   }, 200);
 }
 
-// Load live data on startup, then refresh every 30 seconds
 loadFromBin();
 setInterval(loadFromBin, 30000);
 </script>
